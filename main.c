@@ -9,15 +9,20 @@ int main()
 
     if(file == NULL){
         printf("Error Opening File\n");
+        return 1;
     }
 
-    char buffer[13];
-    fread(buffer, 1, 12, file);
+    fseek(file, 0, SEEK_END);
+    long filesize = ftell(file);
+    rewind(file);
 
-    for (size_t i = 0; i < 12; i++)
+    char buffer[filesize + 1];
+    fread(buffer, sizeof(char), filesize, file);
+
+    for (size_t i = 0; i < filesize; i++)
     {
         printf("%02X ", buffer[i]);
     }
     
-    printf("\n");
+    printf("; %s\n", buffer);
 }
