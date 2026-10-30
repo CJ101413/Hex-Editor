@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 
 int main()
 {
     char * filepath = "/home/joshua/dev/Hex-Editor/test.txt";
-    FILE * file = fopen(filepath, "r");
+    FILE * file = fopen(filepath, "rb");
 
     if(file == NULL){
         printf("Error Opening File\n");
@@ -19,10 +20,24 @@ int main()
     char buffer[filesize + 1];
     fread(buffer, sizeof(char), filesize, file);
 
-    for (size_t i = 0; i < filesize; i++)
+    double lineCount = ceil(sizeof(buffer) / 16.0);
+    size_t offset = 0;
+    
+    for (size_t i = 0; i < lineCount; i++)
     {
-        printf("%02X ", buffer[i]);
+        printf("%08zX ", offset);
+        for (size_t j = 0; j < 16; j++)
+        {
+            printf("%02X ", buffer[offset]);
+            offset++;
+        }
+
+        for (size_t k = offset - 16; k < offset; k++)
+        {
+            printf("%c", buffer[k]);
+        }
+        printf("\n");    
     }
     
-    printf("; %s\n", buffer);
+    
 }
