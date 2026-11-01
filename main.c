@@ -22,49 +22,39 @@ int main()
 
     double lineCount = ceil(filesize / 16.0);
     size_t offset = 0;
+    long total_bytes = filesize;
     
     for (size_t i = 0; i < lineCount; i++)
     {
         //print offset
         printf("%08zX ; ", offset);
 
-        //print last line
-        if (i == lineCount - 1 && filesize % 16 != 0)
+        //print hex values
+        size_t j = 0;
+        while (j < 16 && total_bytes != 0)
         {
-            for (size_t k = 0; k < (filesize % 16); k++)
-            {
-                printf("%02X ", buffer[offset]);
-                offset++;
-            }
+            printf("%02X ", buffer[offset]);
 
-            for (size_t i = 0; i < 16 - (filesize % 16); i++)
+            offset++;
+            total_bytes--;
+            j++;
+        }
+        
+        //padding
+        if(j < 16){
+            for (size_t l = 0; l < 16 - j; l++)
             {
                 printf("   ");
             }
-
-            printf(" ; ");
-            for (size_t k = offset - (filesize % 16); k < offset; k++)
-            {
-                printf("%c", buffer[k]);
-            }
-            printf("\n");  
-
-            continue;
         }
-
-        //print Hex values (Except last line)
-        for (size_t j = 0; j < 16; j++)
-        {
-            printf("%02X ", buffer[offset]);
-            offset++;
-        }
-
-        //print english text (Except last line)
+        
+        //print ASCII
         printf(" ; ");
-        for (size_t k = offset - 16; k < offset; k++)
+        for (size_t k = offset - j; k < offset; k++)
         {
             printf("%c", buffer[k]);
         }
-        printf("\n");    
+
+        printf("\n");  
     }
 }
