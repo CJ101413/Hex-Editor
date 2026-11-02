@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <math.h>
 
 int main()
@@ -9,7 +10,7 @@ int main()
     FILE * file = fopen(filepath, "rb");
 
     if(file == NULL){
-        printf("Error Opening File\n");
+        perror("Error Opening File\n");
         return 1;
     }
 
@@ -17,7 +18,13 @@ int main()
     long filesize = ftell(file);
     rewind(file);
 
-    unsigned char buffer[filesize + 1];
+    unsigned char * buffer = malloc(filesize);
+    if(buffer == NULL)
+    {
+        perror("Memory Allocation Failure!\n");
+        return 1;
+    }
+
     fread(buffer, sizeof(char), filesize, file);
 
     double lineCount = ceil(filesize / 16.0);
@@ -60,4 +67,8 @@ int main()
 
         printf("\n");  
     }
+
+    free(buffer);
+    buffer = NULL;
+    fclose(file);
 }
