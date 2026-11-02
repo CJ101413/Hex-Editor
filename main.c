@@ -17,7 +17,7 @@ int main()
     long filesize = ftell(file);
     rewind(file);
 
-    char buffer[filesize + 1];
+    unsigned char buffer[filesize + 1];
     fread(buffer, sizeof(char), filesize, file);
 
     double lineCount = ceil(filesize / 16.0);
@@ -52,7 +52,10 @@ int main()
         printf(" ; ");
         for (size_t k = offset - j; k < offset; k++)
         {
-            printf("%c", buffer[k]);
+            if(buffer[k] >= 31 && buffer[k] <= 126)
+                printf("%c", buffer[k]);
+            else
+                printf(".");
         }
 
         printf("\n");  
