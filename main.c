@@ -77,12 +77,12 @@ int main()
     struct termios term;
     char c;
 
-    tcgetattr(STDIN_FILENO, &term);
+    tcgetattr(STDERR_FILENO, &term);
     cfmakeraw(&term);
     tcsetattr(STDIN_FILENO, TCSANOW, &term);
 
     while(read(STDIN_FILENO, &c, 1) == 1)
     {
-        printf("Za Warudo!\n");
+        printf("%02X\r\n", c);
     }
 }
