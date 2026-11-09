@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <termios.h>
+#include <unistd.h>
 
 int main()
 {
@@ -31,7 +32,7 @@ int main()
     double lineCount = ceil(filesize / 16.0);
     size_t offset = 0;
     long total_bytes = filesize;
-    
+
     for (size_t i = 0; i < lineCount; i++)
     {
         //print offset
@@ -72,4 +73,24 @@ int main()
     free(buffer);
     buffer = NULL;
     fclose(file);
+
+    struct termios term;
+    char c;
+
+    tcgetattr(STDERR_FILENO, &term);
+    term.c_iflag &= ~IXON;
+    term.c_lflag &= ~(ICANON);
+    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+
+     while((read(STDIN_FILENO, &c, 1)) == 1)
+     {
+         if (c == 0x11) {
+            exit(0);
+        }
+
+        // if (c == 0x13) {
+
+        // }
+     }
+    
 }
