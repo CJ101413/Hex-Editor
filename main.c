@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <math.h>
 #include <termios.h>
 #include <unistd.h>
-#include <ctype.h>
 
 #define CTRL_KEY(k) (k & 0x1F)
 
@@ -79,6 +77,40 @@ void PrintOffset(size_t offset)
     printf("%08zX ; ", offset);
 }
 
+int PrintHex(unsigned char * buffer, size_t * offset, long * total_bytes)
+{
+    int j = 0;
+    while(*total_bytes > 0 && j < 16)
+    {
+        printf("%02X ", buffer[*offset]);
+        *offset += 1;
+        *total_bytes -= 1;
+        j++;
+    }
+
+    for (int i = 0; i < 16 - j; i++)
+    {
+        printf("   ");
+    }
+
+    printf(" ; ");
+
+    return j;
+}
+
+void PrintASCII(unsigned char * buffer, size_t start, int bytesRead)
+{
+    for (size_t k = start - bytesRead; k < start; k++)
+    {
+        if(buffer[k] >= 32 && buffer[k] <= 126)
+            printf("%c", buffer[k]);
+        else
+            printf(".");
+    }
+
+    printf("\n");  
+}
+
 int main()
 {
     // enableRawMode();
@@ -108,45 +140,15 @@ int main()
 
     fread(buffer, sizeof(char), filesize, file);
 
-    double lineCount = ceil(filesize / 16.0);
     size_t offset = 0;
+    double lineCount = ceil(filesize / 16.0);
     long total_bytes = filesize;
 
     for (size_t i = 0; i < lineCount; i++)
     {
-        //print offset
         PrintOffset(offset);
-
-        //print hex values
-        size_t j = 0;
-        while (j < 16 && total_bytes != 0)
-        {
-            printf("%02X ", buffer[offset]);
-
-            offset++;
-            total_bytes--;
-            j++;
-        }
-        
-        //padding
-        if(j < 16){
-            for (size_t l = 0; l < 16 - j; l++)
-            {
-                printf("   ");
-            }
-        }
-        
-        //print ASCII
-        printf(" ; ");
-        for (size_t k = offset - j; k < offset; k++)
-        {
-            if(buffer[k] >= 31 && buffer[k] <= 126)
-                printf("%c", buffer[k]);
-            else
-                printf(".");
-        }
-
-        printf("\n");  
+        int bytesRead = PrintHex(buffer, &offset, &total_bytes);
+        PrintASCII(buffer, offset, bytesRead);
     }
     
     while(1)
