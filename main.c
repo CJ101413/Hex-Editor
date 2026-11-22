@@ -6,6 +6,10 @@
 #include <unistd.h>
 
 #define CTRL_KEY(k) (k & 0x1F)
+#define UP_ARROW 1
+#define DOWN_ARROW 2
+#define LEFT_ARROW 3
+#define RIGHT_ARROW 4
 
 struct termios original;
 
@@ -14,6 +18,27 @@ void die(char * s)
     perror(s);
     exit(1);
 }
+
+// void HighlightByte(unsigned char * isHighlighted, int arrowKey)
+// {
+
+//     int hIndex;
+
+//     for (size_t i = 0; i < sizeof(isHighlighted); i++)
+//     {
+//         if(isHighlighted[i] == '1'){
+//             hIndex = i;
+//             break;
+//         }
+//     }
+    
+
+//     if(arrowKey == RIGHT_ARROW)
+//     {
+//         isHighlighted[hIndex + 1] = '1';
+//         isHighlighted[hIndex] = '0';
+//     }
+// }
 
 char editorReadKey()
 {
@@ -46,6 +71,9 @@ void editorProcessKeyPress()
         else if(seq[0] == '[' && seq[1] == 'A'){
             printf("UP ARROW KEY\r\n");
         }
+        else if(seq[0] == '[' && seq[1] == 'C'){
+            printf("RIGHT ARROW KEY\r\n");
+        }
     }
 }
 
@@ -72,17 +100,30 @@ void enableRawMode(void)
     tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 }
 
+void RefreshScreen()
+{
+    printf("\033[2J\033[H");
+}
+
 void PrintOffset(size_t offset)
 {
     printf("%08zX ; ", offset);
 }
 
-int PrintHex(unsigned char * buffer, size_t * offset, long * total_bytes)
+int PrintHex(unsigned char * buffer, unsigned char * isHighlighted, size_t * offset, long * total_bytes)
 {
     int j = 0;
     while(*total_bytes > 0 && j < 16)
     {
-        printf("%02X ", buffer[*offset]);
+        if(isHighlighted[*offset] == '1')
+        {
+            printf("\033[30;43m%02X\033[0m ", buffer[*offset]);
+        }
+        else
+        {
+            printf("%02X ", buffer[*offset]);
+        }
+        
         *offset += 1;
         *total_bytes -= 1;
         j++;
@@ -108,16 +149,12 @@ void PrintASCII(unsigned char * buffer, size_t start, int bytesRead)
             printf(".");
     }
 
-    printf("\n");  
+    printf("\r\n");  
 }
 
 int main()
 {
-    // enableRawMode();
-    // while(1)
-    // {
-    //     editorProcessKeyPress();
-    // }
+    enableRawMode();
 
     char * filepath = "/home/joshua/dev/Hex-Editor/test.txt";
     FILE * file = fopen(filepath, "rb");
@@ -138,21 +175,35 @@ int main()
         return 1;
     }
 
+    unsigned char * isHightlight = malloc(filesize);
+    if(isHightlight == NULL)
+    {
+        perror("Memory Allocation Failure!\n");
+        return 1;
+    }
+
+    memset(isHightlight, '0', filesize);
+    isHightlight[0] = '1';
+
     fread(buffer, sizeof(char), filesize, file);
 
     size_t offset = 0;
     double lineCount = ceil(filesize / 16.0);
     long total_bytes = filesize;
-
-    for (size_t i = 0; i < lineCount; i++)
-    {
-        PrintOffset(offset);
-        int bytesRead = PrintHex(buffer, &offset, &total_bytes);
-        PrintASCII(buffer, offset, bytesRead);
-    }
     
     while(1)
     {
+        RefreshScreen();
+
+        for (size_t i = 0; i < lineCount; i++)
+        {
+        PrintOffset(offset);
+        int bytesRead = PrintHex(buffer, isHightlight, &offset, &total_bytes);
+        PrintASCII(buffer, offset, bytesRead);
+        }
+
+        offset = 0;
+
         editorProcessKeyPress();
     }
 
