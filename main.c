@@ -19,26 +19,48 @@ void die(char * s)
     exit(1);
 }
 
-// void HighlightByte(unsigned char * isHighlighted, int arrowKey)
-// {
+void HighlightByte(unsigned char * isHighlighted, int arrowKey, long filesize)
+{
+    int hIndex;
 
-//     int hIndex;
-
-//     for (size_t i = 0; i < sizeof(isHighlighted); i++)
-//     {
-//         if(isHighlighted[i] == '1'){
-//             hIndex = i;
-//             break;
-//         }
-//     }
+    for (int i = 0; i < filesize; i++)
+    {
+        if(isHighlighted[i] == '1'){
+            hIndex = i;
+            break;
+        }
+    }
     
 
-//     if(arrowKey == RIGHT_ARROW)
-//     {
-//         isHighlighted[hIndex + 1] = '1';
-//         isHighlighted[hIndex] = '0';
-//     }
-// }
+    if(arrowKey == RIGHT_ARROW)
+    {
+        if(hIndex + 1 < filesize){
+            isHighlighted[hIndex + 1] = '1';
+            isHighlighted[hIndex] = '0';    
+        }
+    }
+    if(arrowKey == LEFT_ARROW)
+    {
+        if(hIndex - 1 >= 0){
+            isHighlighted[hIndex - 1] = '1';
+            isHighlighted[hIndex] = '0'; 
+        }
+    }
+    if(arrowKey == DOWN_ARROW)
+    {
+        if(hIndex + 16 < filesize){
+            isHighlighted[hIndex + 16] = '1';
+            isHighlighted[hIndex] = '0'; 
+        }
+    }
+    if(arrowKey == UP_ARROW)
+    {
+        if(hIndex - 16 >= 0){
+            isHighlighted[hIndex - 16] = '1';
+            isHighlighted[hIndex] = '0'; 
+        }
+    }
+}
 
 char editorReadKey()
 {
@@ -54,7 +76,7 @@ char editorReadKey()
     return c;
 }
 
-void editorProcessKeyPress()
+void editorProcessKeyPress(unsigned char * isHighlighted,long filesize)
 {
     char c = editorReadKey();
     char seq[2];
@@ -69,10 +91,16 @@ void editorProcessKeyPress()
             die("ESC read error");
         }
         else if(seq[0] == '[' && seq[1] == 'A'){
-            printf("UP ARROW KEY\r\n");
+            HighlightByte(isHighlighted, UP_ARROW, filesize);
+        }
+        else if(seq[0] == '[' && seq[1] == 'B'){
+            HighlightByte(isHighlighted, DOWN_ARROW, filesize);
         }
         else if(seq[0] == '[' && seq[1] == 'C'){
-            printf("RIGHT ARROW KEY\r\n");
+            HighlightByte(isHighlighted, RIGHT_ARROW, filesize);
+        }
+         else if(seq[0] == '[' && seq[1] == 'D'){
+            HighlightByte(isHighlighted, LEFT_ARROW, filesize);
         }
     }
 }
@@ -102,7 +130,7 @@ void enableRawMode(void)
 
 void RefreshScreen()
 {
-    printf("\033[2J\033[H");
+    printf("\033[2J\033[3J\033[H");
 }
 
 void PrintOffset(size_t offset)
@@ -189,10 +217,11 @@ int main()
 
     size_t offset = 0;
     double lineCount = ceil(filesize / 16.0);
-    long total_bytes = filesize;
+    
     
     while(1)
     {
+        long total_bytes = filesize;
         RefreshScreen();
 
         for (size_t i = 0; i < lineCount; i++)
@@ -203,8 +232,7 @@ int main()
         }
 
         offset = 0;
-
-        editorProcessKeyPress();
+        editorProcessKeyPress(isHightlight, filesize);
     }
 
     free(buffer);
