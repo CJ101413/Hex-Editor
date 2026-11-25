@@ -11,7 +11,14 @@
 #define LEFT_ARROW 3
 #define RIGHT_ARROW 4
 
+struct HighlightState{
+    unsigned char * mask;
+    long lenght;
+    int index;
+};
+
 struct termios original;
+struct HighlightState hs;
 
 void die(char * s)
 {
@@ -19,45 +26,44 @@ void die(char * s)
     exit(1);
 }
 
-void HighlightByte(unsigned char * isHighlighted, int arrowKey, long filesize)
+void HighlightByte(struct HighlightState * hs, int arrowKey)
 {
-    int hIndex;
+    //int hIndex;
 
-    for (int i = 0; i < filesize; i++)
+    for (int i = 0; i < hs->lenght; i++)
     {
-        if(isHighlighted[i] == '1'){
-            hIndex = i;
+        if(hs->mask[i] == '1'){
+            hs->index = i;
             break;
         }
     }
-    
 
     if(arrowKey == RIGHT_ARROW)
     {
-        if(hIndex + 1 < filesize){
-            isHighlighted[hIndex + 1] = '1';
-            isHighlighted[hIndex] = '0';    
+        if(hs->index + 1 < hs->lenght){
+            hs->mask[hs->index + 1] = '1';
+            hs->mask[hs->index] = '0';    
         }
     }
     if(arrowKey == LEFT_ARROW)
     {
-        if(hIndex - 1 >= 0){
-            isHighlighted[hIndex - 1] = '1';
-            isHighlighted[hIndex] = '0'; 
+        if(hs->index - 1 >= 0){
+            hs->mask[hs->index - 1] = '1';
+            hs->mask[hs->index] = '0'; 
         }
     }
     if(arrowKey == DOWN_ARROW)
     {
-        if(hIndex + 16 < filesize){
-            isHighlighted[hIndex + 16] = '1';
-            isHighlighted[hIndex] = '0'; 
+        if(hs->index + 16 < hs->lenght){
+            hs->mask[hs->index + 16] = '1';
+            hs->mask[hs->index] = '0'; 
         }
     }
     if(arrowKey == UP_ARROW)
     {
-        if(hIndex - 16 >= 0){
-            isHighlighted[hIndex - 16] = '1';
-            isHighlighted[hIndex] = '0'; 
+        if(hs->index - 16 >= 0){
+            hs->mask[hs->index - 16] = '1';
+            hs->mask[hs->index] = '0'; 
         }
     }
 }
@@ -76,7 +82,7 @@ char editorReadKey()
     return c;
 }
 
-void editorProcessKeyPress(unsigned char * isHighlighted,long filesize)
+int editorProcessKeyPress()
 {
     char c = editorReadKey();
     char seq[2];
@@ -91,18 +97,20 @@ void editorProcessKeyPress(unsigned char * isHighlighted,long filesize)
             die("ESC read error");
         }
         else if(seq[0] == '[' && seq[1] == 'A'){
-            HighlightByte(isHighlighted, UP_ARROW, filesize);
+            return UP_ARROW;
         }
         else if(seq[0] == '[' && seq[1] == 'B'){
-            HighlightByte(isHighlighted, DOWN_ARROW, filesize);
+            return DOWN_ARROW;
         }
         else if(seq[0] == '[' && seq[1] == 'C'){
-            HighlightByte(isHighlighted, RIGHT_ARROW, filesize);
+            return RIGHT_ARROW;
         }
          else if(seq[0] == '[' && seq[1] == 'D'){
-            HighlightByte(isHighlighted, LEFT_ARROW, filesize);
+            return LEFT_ARROW;
         }
     }
+
+    return -1;
 }
 
 void disableRawMode(void)
@@ -203,19 +211,20 @@ int main()
         return 1;
     }
 
-    unsigned char * isHightlight = malloc(filesize);
-    if(isHightlight == NULL)
+    hs.mask = malloc(filesize);
+    if(hs.mask == NULL)
     {
         perror("Memory Allocation Failure!\n");
         return 1;
     }
 
-    memset(isHightlight, '0', filesize);
-    isHightlight[0] = '1';
+    memset(hs.mask, '0', filesize);
+    hs.mask[0] = '1';
 
     fread(buffer, sizeof(char), filesize, file);
 
     size_t offset = 0;
+    hs.lenght = filesize;
     double lineCount = ceil(filesize / 16.0);
     
     
@@ -227,12 +236,30 @@ int main()
         for (size_t i = 0; i < lineCount; i++)
         {
         PrintOffset(offset);
-        int bytesRead = PrintHex(buffer, isHightlight, &offset, &total_bytes);
+        int bytesRead = PrintHex(buffer, hs.mask, &offset, &total_bytes);
         PrintASCII(buffer, offset, bytesRead);
         }
 
         offset = 0;
-        editorProcessKeyPress(isHightlight, filesize);
+        int key = editorProcessKeyPress();
+
+        switch (key)
+        {
+        case UP_ARROW:
+            HighlightByte(&hs, UP_ARROW);
+            break;
+        case DOWN_ARROW:
+            HighlightByte(&hs, DOWN_ARROW);
+            break;
+        case RIGHT_ARROW:
+            HighlightByte(&hs, RIGHT_ARROW);
+            break;
+        case LEFT_ARROW:
+            HighlightByte(&hs, LEFT_ARROW);
+            break;
+        default:
+            break;
+        }
     }
 
     free(buffer);
