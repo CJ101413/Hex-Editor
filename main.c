@@ -26,10 +26,8 @@ void die(char * s)
     exit(1);
 }
 
-void HighlightByte(struct HighlightState * hs, int arrowKey)
+void UpdateHIndex(struct HighlightState * hs)
 {
-    //int hIndex;
-
     for (int i = 0; i < hs->lenght; i++)
     {
         if(hs->mask[i] == '1'){
@@ -37,6 +35,13 @@ void HighlightByte(struct HighlightState * hs, int arrowKey)
             break;
         }
     }
+}
+
+void HighlightByte(struct HighlightState * hs, int arrowKey)
+{
+    //int hIndex;
+
+   UpdateHIndex(hs);
 
     if(arrowKey == RIGHT_ARROW)
     {
@@ -82,35 +87,41 @@ char editorReadKey()
     return c;
 }
 
-int editorProcessKeyPress()
+int editorProcessKeyPress(struct HighlightState * hs, unsigned char * buffer)
 {
     char c = editorReadKey();
     char seq[2];
 
     switch (c)
     {
-    case CTRL_KEY('q'):
-        exit(0);
-        break;
-    case 0x1B:
-        if(read(STDIN_FILENO, &seq[0], 1) != 1 || read(STDIN_FILENO, &seq[1], 1) != 1){
-            die("ESC read error");
-        }
-        else if(seq[0] == '[' && seq[1] == 'A'){
-            return UP_ARROW;
-        }
-        else if(seq[0] == '[' && seq[1] == 'B'){
-            return DOWN_ARROW;
-        }
-        else if(seq[0] == '[' && seq[1] == 'C'){
-            return RIGHT_ARROW;
-        }
-         else if(seq[0] == '[' && seq[1] == 'D'){
-            return LEFT_ARROW;
-        }
-    }
+        case CTRL_KEY('q'):
+            exit(0);
+            break;
+        case CTRL_KEY('s'):
+            return CTRL_KEY('s');
+        case 0x1B:
+            if(read(STDIN_FILENO, &seq[0], 1) != 1 || read(STDIN_FILENO, &seq[1], 1) != 1){
+                die("ESC read error");
+            }
+            else if(seq[0] == '[' && seq[1] == 'A'){
+                HighlightByte(hs, UP_ARROW);
+            }
+            else if(seq[0] == '[' && seq[1] == 'B'){
+                HighlightByte(hs, DOWN_ARROW);
+            }
+            else if(seq[0] == '[' && seq[1] == 'C'){
+                HighlightByte(hs, RIGHT_ARROW);
+            }
+            else if(seq[0] == '[' && seq[1] == 'D'){
+                HighlightByte(hs, LEFT_ARROW);
+            }
+            break;
+        default:
+            UpdateHIndex(hs);
 
-    return -1;
+            buffer[hs->index] = c;
+            break;
+    }
 }
 
 void disableRawMode(void)
@@ -230,6 +241,14 @@ int main()
     
     while(1)
     {
+         FILE * ofile = fopen(filepath, "rb+");
+
+        if(file == NULL){
+            perror("Error Opening File\n");
+            return 1;
+        }
+
+
         long total_bytes = filesize;
         RefreshScreen();
 
@@ -241,25 +260,18 @@ int main()
         }
 
         offset = 0;
-        int key = editorProcessKeyPress();
+        int key = editorProcessKeyPress(&hs, buffer);
 
         switch (key)
         {
-        case UP_ARROW:
-            HighlightByte(&hs, UP_ARROW);
-            break;
-        case DOWN_ARROW:
-            HighlightByte(&hs, DOWN_ARROW);
-            break;
-        case RIGHT_ARROW:
-            HighlightByte(&hs, RIGHT_ARROW);
-            break;
-        case LEFT_ARROW:
-            HighlightByte(&hs, LEFT_ARROW);
+        case CTRL_KEY('s'):
+        fwrite(buffer, filesize, sizeof(char), ofile);
             break;
         default:
             break;
         }
+
+        fclose(ofile);
     }
 
     free(buffer);
